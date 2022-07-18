@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:sockets="http://www.mulesoft.org/schema/mule/sockets"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/sockets http://www.mulesoft.org/schema/mule/sockets/current/mule-sockets.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="9547ae8e-5a66-4199-85e8-b30b8d9bf1b8" >
+		<http:listener-connection host="0.0.0.0" port="8088" />
+	</http:listener-config>
+	<vm:config name="VM_Config" doc:name="VM Config" doc:id="706512e7-7120-402c-bced-b05e12032549" >
+		<vm:connection />
+		<vm:queues >
+			<vm:queue queueName="p" />
+			<vm:queue queueName="c" />
+		</vm:queues>
+	</vm:config>
+	<flow name="vm_queueFlow" doc:id="57c623dc-3065-4f61-859e-e76a6aafdafe" >
+		<http:listener doc:name="Listener" doc:id="942c8a37-7cbe-4b32-a696-18a139e7f1ba" config-ref="HTTP_Listener_config" path="/vm"/>
+		<logger level="INFO" doc:name="Logger" doc:id="476eee83-e6d9-4035-b915-52e93ee9ba6c" message='#["Start logger"]'/>
+		<vm:publish doc:name="Publish" doc:id="339d4818-5db6-4ba1-a4cc-152a6c2e6aeb" config-ref="VM_Config" queueName="c"/>
+		<logger level="INFO" doc:name="Logger" doc:id="39ab010e-1ff5-4bb4-b01c-2364f8f9e9e7" message='#["Publish completed"]'/>
+		<ee:transform doc:name="Transform Message" doc:id="d425a6db-d0e8-4980-8f82-49a3fe35a849" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+Status: "Published message"]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="022ba3c2-a8b4-45cc-83fd-8cae42fb0b6b" message='#["Successfull"]'/>
+	</flow>
+	<flow name="vm_queueFlow1" doc:id="6beb32f2-68b0-4ca6-a13a-82bdaa113611" >
+		<vm:listener doc:name="Listener" doc:id="a0641bad-ebf1-465c-b004-76535b5216d3" config-ref="VM_Config" queueName="p" timeout="50000"/>
+		<logger level="INFO" doc:name="Logger" doc:id="b103c614-6a17-45f6-b83d-60df1bed07f5" message='#["Data received"]'/>
+		<ee:transform doc:name="Transform Message" doc:id="ca93101d-425d-45a2-9aed-194e442e6a29" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="7091cad2-c464-48e6-ba64-0ce9034e57da" message='#["Listener flow done"]'/>
+	</flow>
+	<flow name="vm_queueFlow2" doc:id="e146e39c-4b57-4b73-a60c-2748e860014b" >
+		<http:listener doc:name="Listener" doc:id="2e6ebce1-d63c-4027-ab66-1bc3763842f2" config-ref="HTTP_Listener_config" path="/c"/>
+		<vm:consume doc:name="Consume" doc:id="5a8ede0f-455d-4188-bb51-ea272bf8e20b" config-ref="VM_Config" queueName="c" timeout="5000"/>
+		<logger level="INFO" doc:name="Logger" doc:id="454f23cc-432f-4029-acce-638307cbcf7a" message='#["Consume Completed"]'/>
+	</flow>
+</mule>
